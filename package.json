@@ -3,13 +3,10 @@
   "version": "1.0.0",
   "description": "API to fetch streaming links for ExoPlayer",
   "main": "index.ts",
-  "scripts": {
-    "start": "node index.ts"
-  },
   "dependencies": {
     "cheerio": "^1.0.0"
   },
   "engines": {
-    "node": "18.x"
+    "node": "26.x"
   }
 }
