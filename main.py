@@ -24,21 +24,25 @@ async def resolve_tv(tmdbId: int, season: int, episode: int):
     
     headers = {
         "User-Agent": USER_AGENT,
-        "Referer": "https://vidsrc.sh/"
+        "Referer": "https://vidsrc.sh/",
+        "Accept-Language": "en-US,en;q=0.9"
     }
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=10.0) as client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client:
         try:
             response = await client.get(target_url, headers=headers)
-            if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail="Failed to fetch from upstream")
             
+            # إذا طابقت استجابة سيرفر البث صفحة الحماية، سنحاول التعامل معها أو جلب بديل
+            if "cf-browser-verification" in response.text or "I'm not a robot" in response.text:
+                raise HTTPException(status_code=403, detail="Cloudflare block detected on proxy server")
+
             return {
                 "status": "success",
                 "tmdbId": tmdbId,
                 "season": season,
                 "episode": episode,
-                "embed_url": target_url
+                "embed_url": target_url,
+                "html": response.text  # إرجاع المحتوى لتحليله إن لزم
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
