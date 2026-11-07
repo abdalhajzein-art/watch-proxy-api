@@ -17,8 +17,8 @@ def home():
 
 @app.get("/api/resolve/tv")
 async def resolve_tv(tmdbId: int, season: int, episode: int):
-    # إرجاع رابط الـ Embed الجاهز والمباشر للمسلسلات دون فشل
-    target_url = f"https://vidsrc.cc/v2/embed/tv/{tmdbId}/{season}/{episode}"
+    # استخدام مصدر بديل مستقر لا يواجه مشاكل Host Error
+    target_url = f"https://vidsrc.vip/embed/tv/{tmdbId}/{season}/{episode}"
     return {
         "status": "success",
         "embed_url": target_url
