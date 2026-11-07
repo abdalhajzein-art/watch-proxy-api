@@ -17,7 +17,7 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 
 @app.get("/")
 def home():
-    return {"status": "Online", "message": "Watch Proxy API is running!"}
+    return {"status": "Online", "message": "Watch Proxy API is running successfully!"}
 
 @app.get("/api/resolve/tv")
 async def resolve_tv(tmdbId: int, season: int, episode: int):
@@ -37,37 +37,27 @@ async def resolve_tv(tmdbId: int, season: int, episode: int):
             
             html_content = response.text
 
-            # 2. البحث عن أي روابط تدفق مباشرة داخل الصفحة (مثل .m3u8 أو روابط الـ sources الداخلية)
-            # (ملاحظة: بعض المزودات تضع الروابط ضمن ملفات جافاسكريبت أو Iframe ثانوي، سنبحث عن الروابط المباشرة إن وجدت)
+            # 2. البحث عن رابط .m3u8 مباشر داخل الكود
             m3u8_match = re.search(r'https?://[^\s<>"]+?\.m3u8[^\s<>"]*', html_content)
             if m3u8_match:
-                stream_url = m3u8_match.group(0)
                 return {
                     "status": "success",
-                    "type": "stream",
-                    "embed_url": stream_url
+                    "embed_url": m3u8_match.group(0)
                 }
 
-            # 3. إذا لم نجد رابط مباشر، سنبحث عن مصدر الـ Iframe الداخلي ونتابع تتبعه
+            # 3. البحث عن Iframe داخلي وتتبع رابطه لاستخراج الرابط الخام
             iframe_match = re.search(r'src="(https?://[^"]+)"', html_content)
             if iframe_match:
                 inner_url = iframe_match.group(1)
-                # جلب محتوى الـ Iframe الداخلي
                 inner_resp = await client.get(inner_url, headers={"User-Agent": USER_AGENT, "Referer": target_url})
                 inner_m3u8 = re.search(r'https?://[^\s<>"]+?\.m3u8[^\s<>"]*', inner_resp.text)
                 if inner_m3u8:
                     return {
                         "status": "success",
-                        "type": "stream",
                         "embed_url": inner_m3u8.group(0)
                     }
 
-            # كحل احتياطي إذا تعذر استخراج الرابط المباشر، نعيد الرابط مع إذن خاص
-            return {
-                "status": "success",
-                "type": "embed",
-                "embed_url": target_url
-            }
+            raise HTTPException(status_code=404, detail="Direct stream link not found")
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
